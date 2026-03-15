@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06111f;
+            --bg-soft: rgba(8, 17, 31, 0.7);
+            --panel: rgba(9, 19, 37, 0.74);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --text: #eef4ff;
+            --muted: #9eb0ca;
+            --primary: #65d9ff;
+            --secondary: #6c7cff;
+            --accent: #ff7ab6;
+            --success: #59f0b2;
+            --warning: #ff7272;
+            --shadow: 0 28px 80px rgba(2, 8, 23, 0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            min-height: 100vh;
+            padding: 26px;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(101, 217, 255, 0.16), transparent 30%),
+                radial-gradient(circle at 85% 15%, rgba(108, 124, 255, 0.18), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(255, 122, 182, 0.16), transparent 34%),
+                linear-gradient(160deg, #030712 0%, #08111f 42%, #0b1730 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .page-aurora {
+            position: fixed;
+            inset: auto;
+            width: 34rem;
+            height: 34rem;
+            border-radius: 999px;
+            filter: blur(80px);
+            pointer-events: none;
+            opacity: 0.55;
+            z-index: 0;
+            animation: drift 14s ease-in-out infinite;
+        }
+
+        .aurora-left {
+            top: -10rem;
+            left: -8rem;
+            background: rgba(101, 217, 255, 0.28);
+        }
+
+        .aurora-right {
+            right: -10rem;
+            bottom: -12rem;
+            background: rgba(255, 122, 182, 0.24);
+            animation-delay: -5s;
+        }
+
+        .shell {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            padding: 34px;
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(11, 20, 39, 0.88) 0%, rgba(7, 14, 27, 0.8) 100%);
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(22px);
+            animation: riseIn 0.85s cubic-bezier(.2, .8, .2, 1);
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: 27px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            pointer-events: none;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            padding: 1px;
+            opacity: 0.8;
+        }
+
+        .container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.08) 50%, transparent 80%);
+            transform: translateX(-120%);
+            animation: sheen 9s linear infinite;
+            pointer-events: none;
+        }
+
+        .hero {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.95fr);
+            gap: 22px;
+            margin-bottom: 28px;
+        }
+
+        .hero-panel,
+        .metric-card,
+        .section-card,
+        .results,
+        .danger-alert,
+        .tabs {
+            background: linear-gradient(180deg, rgba(14, 27, 49, 0.78) 0%, rgba(9, 19, 37, 0.62) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            padding: 28px;
+        }
+
+        .hero-panel::before,
+        .metric-card::before,
+        .section-card::before,
+        .results::before,
+        .danger-alert::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.12), transparent 48%);
+            pointer-events: none;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            border-radius: 999px;
+            margin-bottom: 18px;
+            font-size: 0.82rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--primary);
+            background: rgba(101, 217, 255, 0.08);
+            border: 1px solid rgba(101, 217, 255, 0.18);
+        }
+
+        .hero-kicker::before {
+            content: '';
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            box-shadow: 0 0 14px rgba(89, 240, 178, 0.65);
+            animation: beacon 1.8s ease-in-out infinite;
+        }
+
+        h1,
+        .section h2,
+        .results h3,
+        .danger-alert h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.03em;
+        }
+
+        h1 {
+            font-size: clamp(2.6rem, 5vw, 4.5rem);
+            line-height: 0.95;
+            margin-bottom: 16px;
+            color: #f8fbff;
+        }
+
+        .hero-copy p {
+            max-width: 640px;
+            color: var(--muted);
+            line-height: 1.75;
+            font-size: 1rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 22px;
+        }
+
+        .page-link-btn,
+        .btn {
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f8fbff;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, rgba(101, 217, 255, 0.22) 0%, rgba(108, 124, 255, 0.22) 48%, rgba(255, 122, 182, 0.22) 100%);
+            box-shadow: 0 14px 36px rgba(5, 12, 25, 0.38);
+            transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+        }
+
+        .page-link-btn::before,
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.18) 50%, transparent 80%);
+            transform: translateX(-130%);
+            transition: transform 0.7s ease;
+        }
+
+        .page-link-btn:hover,
+        .btn:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.24);
+            box-shadow: 0 20px 44px rgba(5, 12, 25, 0.48);
+        }
+
+        .page-link-btn:hover::before,
+        .btn:hover::before {
+            transform: translateX(130%);
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .hero-metrics {
+            display: grid;
+            gap: 16px;
+        }
+
+        .metric-card {
+            position: relative;
+            padding: 20px;
+            border-radius: 22px;
+            min-height: 124px;
+            transform: translateZ(0);
+            transition: transform 0.28s ease, border-color 0.28s ease;
+            animation: floatCard 8s ease-in-out infinite;
+        }
+
+        .metric-card:nth-child(2) {
+            animation-delay: -2.2s;
+        }
+
+        .metric-card:nth-child(3) {
+            animation-delay: -4.5s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(101, 217, 255, 0.26);
+        }
+
+        .metric-eyebrow {
+            display: block;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 0.72rem;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .metric-copy {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.55;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 18px;
+            margin-bottom: 28px;
+            position: sticky;
+            top: 16px;
+            z-index: 2;
+        }
+
+        .tab-btn {
+            flex: 1;
+            border: 1px solid transparent;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.96rem;
+            font-weight: 700;
+            transition: transform 0.22s ease, color 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: #06111f;
+            background: linear-gradient(135deg, var(--primary) 0%, #b9f4ff 52%, #ffd8ea 100%);
+            border-color: rgba(255, 255, 255, 0.32);
+            box-shadow: 0 10px 28px rgba(101, 217, 255, 0.22);
+        }
+
+        .tab-content {
+            display: none;
+            animation: tabReveal 0.45s cubic-bezier(.2, .8, .2, 1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-card {
+            position: relative;
+            padding: 26px;
+            border-radius: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section {
+            margin-bottom: 0;
+        }
+
+        .section h2 {
+            color: #f8fbff;
+            margin-bottom: 14px;
+            font-size: 1.5rem;
+        }
+
+        .section-description,
+        .about-copy,
+        .about-list,
+        .about-steps {
+            color: var(--muted);
+            line-height: 1.75;
+        }
+
+        .upload-area {
+            position: relative;
+            overflow: hidden;
+            border: 1px dashed rgba(101, 217, 255, 0.42);
+            border-radius: 22px;
+            padding: 52px 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+            background:
+                radial-gradient(circle at top, rgba(101, 217, 255, 0.12), transparent 42%),
+                linear-gradient(180deg, rgba(14, 27, 49, 0.82) 0%, rgba(9, 19, 37, 0.68) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            inset: -120% -10%;
+            background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.1) 50%, transparent 65%);
+            transform: rotate(8deg);
+            animation: scanSweep 5.2s linear infinite;
+        }
+
+        .upload-area:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 122, 182, 0.56);
+            box-shadow: 0 18px 44px rgba(3, 8, 20, 0.38);
+        }
+
+        .upload-area.dragover {
+            border-color: rgba(255, 122, 182, 0.9);
+            box-shadow: 0 0 0 1px rgba(255, 122, 182, 0.35), 0 18px 44px rgba(3, 8, 20, 0.45);
+            background:
+                radial-gradient(circle at top, rgba(255, 122, 182, 0.14), transparent 42%),
+                linear-gradient(180deg, rgba(20, 24, 49, 0.84) 0%, rgba(9, 19, 37, 0.7) 100%);
+        }
+
+        .upload-area p {
+            position: relative;
+            z-index: 1;
+            color: #dbe8ff;
+            margin: 8px 0;
+        }
+
+        .upload-title {
+            font-size: 1.18rem;
+            font-weight: 800;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 18px 38px rgba(2, 8, 23, 0.38);
+            background: #020817;
+        }
+
+        .video-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.03));
+            pointer-events: none;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+            height: auto;
+            min-height: 400px;
+        }
+
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        #outputCanvas,
+        #uploadedImage {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .controls {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .results {
+            position: relative;
+            margin-top: 24px;
+            padding: 22px;
+            border-radius: 22px;
+        }
+
+        .results h3 {
+            color: #f8fbff;
+            margin-bottom: 14px;
+            font-size: 1.2rem;
+        }
+
+        .result-item {
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 16px;
+            margin: 10px 0;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 22px rgba(2, 8, 23, 0.18);
+            transition: transform 0.22s ease, border-color 0.22s ease;
+            animation: riseIn 0.45s ease both;
+        }
+
+        .result-item:hover {
+            transform: translateX(3px);
+            border-color: rgba(101, 217, 255, 0.24);
+        }
+
+        .emotion-label {
+            font-weight: 800;
+            color: #f8fbff;
+            font-size: 1.02rem;
+        }
+
+        .confidence {
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .confidence-bar {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            height: 8px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .all-predictions {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--primary);
+            display: none;
+            margin: 20px 0;
+            font-weight: 700;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.12);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .error,
+        .success {
+            padding: 14px 16px;
+            border-radius: 14px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .error {
+            background: rgba(255, 114, 114, 0.12);
+            color: #ffd5d5;
+        }
+
+        .success {
+            background: rgba(89, 240, 178, 0.12);
+            color: #d7ffef;
+        }
+
+        .face-count {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 999px;
+            color: var(--primary);
+            font-weight: 800;
+            display: inline-block;
+            margin: 8px 0 14px;
+        }
+
+        .live-status {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.96rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .danger-alert {
+            position: relative;
+            color: #fff;
+            padding: 18px;
+            border-radius: 20px;
+            margin: 16px 0;
+            display: none;
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.88) 0%, rgba(190, 24, 93, 0.8) 100%);
+            animation: alertIn 0.3s ease;
+        }
+
+        .danger-alert.show {
+            display: block;
+        }
+
+        .danger-alert h4 {
+            margin-bottom: 10px;
+            font-size: 1.02rem;
+            letter-spacing: 0.04em;
+        }
+
+        .danger-object-item {
+            background: rgba(255, 255, 255, 0.14);
+            padding: 9px 11px;
+            border-radius: 12px;
+            margin: 7px 0;
+            font-weight: 700;
+        }
+
+        .danger-blink {
+            animation: warningPulse 1.05s ease-in-out infinite;
+        }
+
+        .about-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .about-block {
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .about-block h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            color: #f8fbff;
+            margin-bottom: 12px;
+        }
+
+        .ui-showcase {
+            overflow: hidden;
+        }
+
+        .ui-note {
+            color: var(--muted);
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+
+        .ui-demo-bg {
+            position: relative;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(101, 217, 255, 0.24), transparent 36%),
+                radial-gradient(circle at 82% 22%, rgba(108, 124, 255, 0.22), transparent 34%),
+                radial-gradient(circle at 50% 95%, rgba(255, 122, 182, 0.22), transparent 40%),
+                linear-gradient(130deg, rgba(8, 17, 31, 0.94) 0%, rgba(10, 22, 45, 0.9) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .ui-demo-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 26px 26px;
+            pointer-events: none;
+        }
+
+        .ui-demo-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .demo-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #f8fbff;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(3, 8, 20, 0.34);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .demo-btn-primary {
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(101, 217, 255, 0.24) 0%, rgba(108, 124, 255, 0.24) 55%, rgba(255, 122, 182, 0.2) 100%);
+        }
+
+        .demo-btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.2) 50%, transparent 80%);
+            transform: translateX(-130%);
+            animation: buttonSweep 2.7s ease-in-out infinite;
+        }
+
+        .demo-btn-ghost {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .demo-btn-danger {
+            border-color: rgba(255, 114, 114, 0.4);
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.78) 0%, rgba(190, 24, 93, 0.65) 100%);
+            animation: dangerPing 1.2s ease-in-out infinite;
+        }
+
+        .btn-icon {
+            display: inline-grid;
+            place-items: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.2);
+            animation: iconPulse 1.6s ease-in-out infinite;
+        }
+
+        .icon-lane {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .orbit-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: inline-grid;
+            place-items: center;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.06);
+            animation: iconOrbit 3.5s ease-in-out infinite;
+        }
+
+        .orbit-icon:nth-child(2) {
+            animation-delay: -1.1s;
+        }
+
+        .orbit-icon:nth-child(3) {
+            animation-delay: -2.2s;
+        }
+
+        .code-grid {
+            margin-top: 14px;
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .code-card {
+            margin: 0;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(3, 10, 22, 0.8);
+            color: #dce9ff;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            overflow-x: auto;
+        }
+
+        .code-card code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .about-list,
+        .about-steps {
+            margin-left: 20px;
+        }
+
+        .about-list li,
+        .about-steps li {
+            margin: 8px 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50% { transform: translate3d(0, 28px, 0) scale(1.06); }
+        }
+
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(18px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes tabReveal {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes alertIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 114, 114, 0.25); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 114, 114, 0); }
+        }
+
+        @keyframes scanSweep {
+            0% { transform: translate3d(-20%, -18%, 0) rotate(8deg); }
+            100% { transform: translate3d(24%, 22%, 0) rotate(8deg); }
+        }
+
+        @keyframes sheen {
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(120%); }
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes beacon {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.25); opacity: 1; }
+        }
+
+        @keyframes buttonSweep {
+            0% { transform: translateX(-130%); }
+            45%, 100% { transform: translateX(130%); }
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.18); opacity: 1; }
+        }
+
+        @keyframes iconOrbit {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes dangerPing {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 114, 114, 0.18); }
+            50% { box-shadow: 0 0 0 8px rgba(255, 114, 114, 0); }
+        }
+
+        @media (max-width: 900px) {
+            .hero,
+            .about-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 14px;
+            }
+
+            .container {
+                padding: 20px;
+                border-radius: 22px;
+            }
+
+            .hero-panel,
+            .metric-card,
+            .section-card,
+            .results,
+            .danger-alert {
+                border-radius: 18px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .upload-area {
+                padding: 34px 20px;
+            }
+
+            video {
+                min-height: 260px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-aurora aurora-left"></div>
+    <div class="page-aurora aurora-right"></div>
+    <div class="shell">
+    <div class="container">
+        <section class="hero">
+            <div class="hero-panel hero-copy">
+                <span class="hero-kicker">Live Computer Vision Interface</span>
+                <h1>Emotion sensing with a sharper real-time control surface.</h1>
+                <p>
+                    Monitor facial emotion signals from uploads or live webcam frames in a clear interface
+                    with status feedback designed for practical monitoring.
+                </p>
+                <div class="header-actions">
+                    <a class="page-link-btn" href="/esp-status">📍 View ESP Device Status</a>
+                </div>
+            </div>
+            <div class="hero-metrics">
+                <article class="metric-card">
+                    <span class="metric-eyebrow">Modes</span>
+                    <span class="metric-value">2 Live Views</span>
+                    <p class="metric-copy">Switch between upload playback analysis and webcam monitoring without leaving the page.</p>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-eyebrow">Tracked Signals</span>
+                    <span class="metric-value">5 Emotions</span>
+                    <p class="metric-copy">Angry, fear, happy, sad, and surprise are surfaced through a tighter visual feedback loop.</p>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-eyebrow">Risk Layer</span>
+                    <span class="metric-value">Object Alerts</span>
+                    <p class="metric-copy">Danger detections are highlighted clearly to separate them from regular results.</p>
+                </article>
+            </div>
+        </section>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('upload', this)">Upload Video</button>
+            <button class="tab-btn" onclick="switchTab('webcam', this)">Webcam</button>
+            <button class="tab-btn" onclick="switchTab('about', this)">About</button>
+        </div>
+        
+        <!-- Upload Tab -->
+        <div id="upload" class="tab-content active">
+            <div class="section section-card">
+                <h2>Upload a Video</h2>
+                <p class="section-description">Drop a clip into the animated intake area, then run frame-by-frame detection with live overlays.</p>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <p class="upload-title">📹 Click to select a video or drag and drop</p>
+                    <p>Supported formats: MP4, AVI, MOV, WebM</p>
+                </div>
+                <input type="file" id="fileInput" accept="video/*">
+            </div>
+            
+            <div class="loading" id="uploadLoading">
+                <div class="spinner"></div>
+                <span>Processing video...</span>
+            </div>
+            
+            <div id="uploadError"></div>
+            
+            <div class="video-container" id="uploadVideoContainer" style="display: none; margin-top: 20px;">
+                <video id="uploadedVideo" playsinline muted controls style="width: 100%; background: #000;"></video>
+                <canvas id="uploadOverlayCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+            </div>
+            
+            <div class="controls" id="videoControls" style="display: none; margin-top: 20px;">
+                <button class="btn" id="playBtn" onclick="playUploadVideo()">Play & Detect</button>
+                <button class="btn" id="stopVideoBtn" onclick="stopUploadVideo()" style="display: none;">Stop</button>
+            </div>
+            
+            <div class="live-status" id="videoStatus">Video upload inactive.</div>
+            
+            <div class="danger-alert" id="uploadDangerAlert" style="display: none;">
+                <h4>⚠️ DANGEROUS OBJECT DETECTED!</h4>
+                <div id="uploadDangerList"></div>
+            </div>
+            
+            <div class="results" id="uploadResults" style="display: none; margin-top: 20px;">
+                <div class="face-count" id="faceCountUpload"></div>
+                <h3>Detected Emotions (Live)</h3>
+                <div id="uploadDetections"></div>
+            </div>
+        </div>
+        
+        <!-- Webcam Tab -->
+        <div id="webcam" class="tab-content">
+            <div class="section section-card">
+                <h2>Real-time Webcam Detection</h2>
+                <p class="section-description">Start the live camera feed to watch overlay boxes, emotion tags, and danger alerts update in place.</p>
+                <div class="video-container">
+                    <video id="webcamVideo" playsinline autoplay muted></video>
+                    <canvas id="overlayCanvas"></canvas>
+                </div>
+                <canvas id="canvas"></canvas>
+                <div class="controls">
+                    <button class="btn" id="startBtn" onclick="startWebcam()">Start Webcam</button>
+                    <button class="btn" id="stopBtn" onclick="stopWebcam()" style="display: none;">Stop Webcam</button>
+                </div>
+                <div class="live-status" id="liveStatus">Live detection is off.</div>
+            </div>
+            
+            <div class="danger-alert" id="webcamDangerAlert" style="display: none;">
+                <h4>⚠️ DANGEROUS OBJECT DETECTED!</h4>
+                <div id="webcamDangerList"></div>
+            </div>
+            
+            <div class="results" id="webcamResults" style="display: none;">
+                <div class="face-count" id="faceCountWebcam"></div>
+                <h3>Detected Emotions</h3>
+                <div id="webcamDetections"></div>
+            </div>
+        </div>
+        
+        <!-- About Tab -->
+        <div id="about" class="tab-content">
+            <div class="section section-card">
+                <h2>About This System</h2>
+                <p class="about-copy" style="margin: 15px 0;">
+                    This emotion detection system uses a deep learning model trained on facial expressions 
+                    to recognize human emotions in real-time. The system can detect the following emotions:
+                </p>
+                <div class="about-grid">
+                    <div class="about-block">
+                        <h3>Emotion Classes</h3>
+                        <ul class="about-list">
+                            <li><strong>Angry</strong> shows signs of anger or frustration.</li>
+                            <li><strong>Fear</strong> shows signs of fear or anxiety.</li>
+                            <li><strong>Happy</strong> shows signs of happiness.</li>
+                            <li><strong>Sad</strong> shows signs of sadness.</li>
+                            <li><strong>Surprise</strong> shows signs of surprise.</li>
+                        </ul>
+                    </div>
+                    <div class="about-block">
+                        <h3>Features</h3>
+                        <ul class="about-list">
+                            <li>Real-time emotion detection from webcam.</li>
+                            <li>Video upload analysis with live overlays.</li>
+                            <li>Confidence scoring for each predicted emotion.</li>
+                            <li>Multiple face detection and analysis.</li>
+                            <li>Danger object alerts with escalation styling.</li>
+                        </ul>
+                    </div>
+                    <div class="about-block" style="grid-column: 1 / -1;">
+                        <h3>How to Use</h3>
+                        <ol class="about-steps">
+                            <li>Open the upload tab to analyze a recorded clip.</li>
+                            <li>Open the webcam tab for continuous live detection.</li>
+                            <li>Watch the overlays, face counts, and emotion results update.</li>
+                            <li>Use the ESP status page to monitor attached-device location data.</li>
+                        </ol>
+                    </div>
+                                        <div class="about-block ui-showcase" style="grid-column: 1 / -1;">
+                                                <h3>UI Animation Pack (Buttons, Icons, Background)</h3>
+                                                <p class="ui-note">Suitable snippets inspired by modern motion UI patterns. You can reuse these classes in any section of your project.</p>
+                                                <div class="ui-demo-bg">
+                                                        <div class="ui-demo-row">
+                                                                <button class="demo-btn demo-btn-primary"><span class="btn-icon">✦</span>Start Scan</button>
+                                                                <button class="demo-btn demo-btn-ghost"><span class="btn-icon">⌁</span>Status Panel</button>
+                                                                <button class="demo-btn demo-btn-danger"><span class="btn-icon">!</span>Alert Mode</button>
+                                                        </div>
+                                                        <div class="icon-lane">
+                                                                <span class="orbit-icon">◉</span>
+                                                                <span class="orbit-icon">⬢</span>
+                                                                <span class="orbit-icon">✧</span>
+                                                        </div>
+                                                </div>
+                                                <div class="code-grid">
+                                                        <pre class="code-card"><code>/* Animated button */
+.demo-btn-primary {
+    background: linear-gradient(135deg,
+        rgba(101,217,255,.24),
+        rgba(108,124,255,.24),
+        rgba(255,122,182,.20));
+    border: 1px solid rgba(255,255,255,.16);
+}
+
+.demo-btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg,
+        transparent 20%,
+        rgba(255,255,255,.2) 50%,
+        transparent 80%);
+    animation: buttonSweep 2.7s ease-in-out infinite;
+}</code></pre>
+                                                        <pre class="code-card"><code>/* Animated icons + moving background */
+.ui-demo-bg {
+    background:
+        radial-gradient(circle at 15% 20%, rgba(101,217,255,.24), transparent 36%),
+        radial-gradient(circle at 82% 22%, rgba(108,124,255,.22), transparent 34%),
+        linear-gradient(130deg, rgba(8,17,31,.94), rgba(10,22,45,.9));
+}
+
+.orbit-icon { animation: iconOrbit 3.5s ease-in-out infinite; }
+.btn-icon { animation: iconPulse 1.6s ease-in-out infinite; }</code></pre>
+                                                </div>
+                                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        function switchTab(tabName, button) {
+            const contents = document.querySelectorAll('.tab-content');
+            const btns = document.querySelectorAll('.tab-btn');
+            
+            contents.forEach(el => el.classList.remove('active'));
+            btns.forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            if (button) {
+                button.classList.add('active');
+            }
+        }
+        
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                handleFileUpload();
+            }
+        });
+        
+        window.addEventListener('resize', resizeUploadOverlay);
+        
+        fileInput.addEventListener('change', handleFileUpload);
+        
+        const uploadVideoElement = document.getElementById('uploadedVideo');
+        const uploadCanvasOverlay = document.getElementById('uploadOverlayCanvas');
+        const uploadOverlayContext = uploadCanvasOverlay.getContext('2d');
+        const uploadFrameCanvas = document.createElement('canvas');
+        const uploadFrameContext = uploadFrameCanvas.getContext('2d');
+        let uploadVideoDetectionActive = false;
+        let uploadVideoFrameCount = 0;
+        let uploadVideoEmotionCounts = {};
+        
+        async function handleFileUpload() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            const isVideo = file.type.startsWith('video/');
+            
+            if (!isVideo) {
+                handleImageUpload(file);
+                return;
+            }
+            
+            document.getElementById('uploadLoading').style.display = 'block';
+            document.getElementById('uploadError').innerHTML = '';
+            document.getElementById('uploadResults').style.display = 'none';
+            document.getElementById('uploadVideoContainer').style.display = 'none';
+            document.getElementById('videoControls').style.display = 'none';
+            
+            try {
+                const fileUrl = URL.createObjectURL(file);
+                uploadVideoElement.src = fileUrl;
+                uploadVideoElement.onloadedmetadata = () => {
+                    document.getElementById('uploadVideoContainer').style.display = 'block';
+                    document.getElementById('videoControls').style.display = 'flex';
+                    document.getElementById('videoStatus').textContent = 'Video loaded. Click "Play & Detect" to start.';
+                    resizeUploadOverlay();
+                };
+            } catch (error) {
+                showUploadError(error.message || 'Failed to load video');
+            } finally {
+                document.getElementById('uploadLoading').style.display = 'none';
+            }
+        }
+        
+        async function handleImageUpload(file) {
+            document.getElementById('uploadLoading').style.display = 'block';
+            document.getElementById('uploadError').innerHTML = '';
+            document.getElementById('uploadResults').style.display = 'none';
+            document.getElementById('uploadVideoContainer').style.display = 'none';
+            document.getElementById('videoControls').style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('uploadedImage').src = data.image;
+                    document.getElementById('uploadCanvasContainer').style.display = 'block';
+                    displayUploadResults(data.detections, data.count);
+                } else {
+                    showUploadError(data.error || 'Detection failed');
+                }
+            } catch (error) {
+                showUploadError(error.message || 'An error occurred');
+            } finally {
+                document.getElementById('uploadLoading').style.display = 'none';
+            }
+        }
+        
+        function resizeUploadOverlay() {
+            uploadCanvasOverlay.width = uploadVideoElement.clientWidth;
+            uploadCanvasOverlay.height = uploadVideoElement.clientHeight;
+        }
+        
+        function clearUploadOverlay() {
+            uploadOverlayContext.clearRect(0, 0, uploadCanvasOverlay.width, uploadCanvasOverlay.height);
+        }
+        
+        function playUploadVideo() {
+            uploadVideoDetectionActive = true;
+            uploadVideoFrameCount = 0;
+            uploadVideoEmotionCounts = {};
+            document.getElementById('playBtn').style.display = 'none';
+            document.getElementById('stopVideoBtn').style.display = 'inline-block';
+            document.getElementById('uploadResults').style.display = 'block';
+            document.getElementById('videoStatus').textContent = 'Live emotion detection running...';
+            uploadVideoElement.play();
+            detectUploadVideoFrames();
+        }
+        
+        function stopUploadVideo() {
+            uploadVideoDetectionActive = false;
+            uploadVideoElement.pause();
+            clearUploadOverlay();
+            document.getElementById('playBtn').style.display = 'inline-block';
+            document.getElementById('stopVideoBtn').style.display = 'none';
+            document.getElementById('videoStatus').textContent = 'Video paused.';
+        }
+        
+        async function detectUploadVideoFrames() {
+            if (!uploadVideoDetectionActive) return;
+            
+            try {
+                uploadFrameCanvas.width = 320;
+                uploadFrameCanvas.height = 240;
+                uploadFrameContext.drawImage(uploadVideoElement, 0, 0, 320, 240);
+                
+                uploadFrameCanvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        if (uploadVideoDetectionActive) {
+                            setTimeout(detectUploadVideoFrames, 100);
+                        }
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const response = await fetch('/api/detect-all', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ image: e.target.result, include_image: false })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                uploadVideoFrameCount++;
+                                drawUploadVideoDetections(data.emotions);
+                                updateUploadVideoResults(data.emotions);
+                                
+                                // Display dangerous objects with alert
+                                displayDangerAlert('upload', data.dangerous_objects);
+                            }
+                        } catch (error) {
+                            console.error('Detection error:', error);
+                        }
+                        
+                        if (uploadVideoDetectionActive && !uploadVideoElement.paused) {
+                            setTimeout(detectUploadVideoFrames, 100);
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                }, 'image/jpeg', 0.6);
+            } catch (error) {
+                console.error('Frame capture error:', error);
+            }
+        }
+        
+        function drawUploadVideoDetections(detections) {
+            clearUploadOverlay();
+            if (!Array.isArray(detections) || detections.length === 0) return;
+            
+            const scaleX = uploadCanvasOverlay.width / 320;
+            const scaleY = uploadCanvasOverlay.height / 240;
+            
+            uploadOverlayContext.lineWidth = 2;
+            uploadOverlayContext.strokeStyle = '#00ff00';
+            uploadOverlayContext.fillStyle = '#00ff00';
+            uploadOverlayContext.font = '16px Segoe UI';
+            
+            detections.forEach((det) => {
+                if (!det.bbox) return;
+                const x = det.bbox.x * scaleX;
+                const y = det.bbox.y * scaleY;
+                const w = det.bbox.w * scaleX;
+                const h = det.bbox.h * scaleY;
+                uploadOverlayContext.strokeRect(x, y, w, h);
+                const labelText = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+                uploadOverlayContext.fillText(labelText, x, Math.max(18, y - 8));
+            });
+        }
+        
+        // Draw danger boxes on video upload overlay
+        function drawUploadVideoDangerBoxes(dangerousObjects) {
+            if (!Array.isArray(dangerousObjects) || dangerousObjects.length === 0) return;
+            
+            const scaleX = uploadCanvasOverlay.width / 320;
+            const scaleY = uploadCanvasOverlay.height / 240;
+            
+            uploadOverlayContext.lineWidth = 3;
+            uploadOverlayContext.strokeStyle = '#FF0000';
+            uploadOverlayContext.fillStyle = '#FF0000';
+            uploadOverlayContext.font = 'bold 16px Segoe UI';
+            
+            dangerousObjects.forEach((danger) => {
+                if (!danger.bbox) return;
+                
+                const x = danger.bbox.x * scaleX;
+                const y = danger.bbox.y * scaleY;
+                const w = danger.bbox.w * scaleX;
+                const h = danger.bbox.h * scaleY;
+                
+                // Draw red rectangle
+                uploadOverlayContext.strokeRect(x, y, w, h);
+                
+                // Draw label with red background
+                const labelText = `⚠️ ${danger.object.toUpperCase()} ${(danger.confidence * 100).toFixed(0)}%`;
+                const metrics = uploadOverlayContext.measureText(labelText);
+                const labelWidth = metrics.width + 8;
+                const labelHeight = 24;
+                
+                uploadOverlayContext.fillRect(x, Math.max(0, y - labelHeight), labelWidth, labelHeight);
+                uploadOverlayContext.fillStyle = '#FFFFFF';
+                uploadOverlayContext.fillText(labelText, x + 4, Math.max(16, y - 4));
+                uploadOverlayContext.fillStyle = '#FF0000';
+            });
+        }
+        
+        function updateUploadVideoResults(detections) {
+            detections.forEach((det) => {
+                const emotion = det.label;
+                uploadVideoEmotionCounts[emotion] = (uploadVideoEmotionCounts[emotion] || 0) + 1;
+            });
+            
+            const detectionsDiv = document.getElementById('uploadDetections');
+            document.getElementById('faceCountUpload').textContent = `Frames processed: ${uploadVideoFrameCount}`;
+            
+            let resultHtml = '<p style="color: #666;">Emotions detected:</p>';
+            for (const [emotion, count] of Object.entries(uploadVideoEmotionCounts)) {
+                resultHtml += `<div class="result-item"><strong>${emotion}:</strong> ${count} frames</div>`;
+            }
+            if (Object.keys(uploadVideoEmotionCounts).length === 0) {
+                resultHtml += '<p style="color: #999;">No emotions detected yet.</p>';
+            }
+            detectionsDiv.innerHTML = resultHtml;
+        }
+        
+        function displayUploadResults(detections, count) {
+            const resultsDiv = document.getElementById('uploadResults');
+            const detectionsDiv = document.getElementById('uploadDetections');
+            document.getElementById('faceCountUpload').textContent = `Faces detected: ${count}`;
+            
+            if (detections.length === 0) {
+                detectionsDiv.innerHTML = '<p style="color: #999;">No faces detected in the image.</p>';
+            } else {
+                detectionsDiv.innerHTML = detections.map((det, i) => `
+                    <div class="result-item">
+                        <div class="emotion-label">Face ${i + 1}: ${det.label}</div>
+                        <div class="confidence">
+                            Confidence: ${(det.confidence * 100).toFixed(2)}%
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            resultsDiv.style.display = 'block';
+        }
+        
+        function showUploadError(message) {
+            document.getElementById('uploadError').innerHTML = `<div class="error">Error: ${message}</div>`;
+        }
+        
+        // Webcam handling
+        const video = document.getElementById('webcamVideo');
+        const canvas = document.getElementById('canvas');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const overlayContext = overlayCanvas.getContext('2d');
+        const CAPTURE_WIDTH = 320;
+        const CAPTURE_HEIGHT = 240;
+        let stream = null;
+        let liveTimer = null;
+        let requestInFlight = false;
+
+        const trackedEmotions = ['Angry', 'Fear', 'Sad'];
+        const trackedTimestamps = {
+            Angry: [],
+            Fear: [],
+            Sad: []
+        };
+        const lastPrintedAt = {
+            Angry: 0,
+            Fear: 0,
+            Sad: 0
+        };
+        
+        async function startWebcam() {
+            try {
+                const constraints = {
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('Stream obtained:', stream);
+                
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded');
+                    video.play().catch(e => console.error('Play error:', e));
+                    resizeOverlay();
+                };
+                
+                // Ensure video plays
+                video.play().catch(e => console.error('Play error:', e));
+                
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+                document.getElementById('webcamResults').style.display = 'none';
+                document.getElementById('liveStatus').textContent = 'Live detection is running...';
+                resetEmotionTracking();
+
+                startLiveDetection();
+                
+                console.log('Webcam started successfully');
+            } catch (error) {
+                console.error('Webcam error:', error);
+                alert('Webcam Error:\n\n' + error.name + ': ' + error.message + '\n\nMake sure:\n1. Browser has camera permission\n2. Camera is not in use by another app\n3. You\'re using Chrome, Firefox, or Edge');
+            }
+        }
+        
+        function stopWebcam() {
+            stopLiveDetection();
+
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('webcamResults').style.display = 'none';
+            document.getElementById('liveStatus').textContent = 'Live detection is off.';
+            resetEmotionTracking();
+            clearOverlay();
+        }
+
+        function resizeOverlay() {
+            overlayCanvas.width = video.clientWidth;
+            overlayCanvas.height = video.clientHeight;
+        }
+
+        function clearOverlay() {
+            overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+
+        function startLiveDetection() {
+            stopLiveDetection();
+            scheduleNextLiveFrame(0);
+        }
+
+        function scheduleNextLiveFrame(delayMs = 700) {
+            if (!stream) {
+                return;
+            }
+            liveTimer = setTimeout(() => {
+                captureAndAnalyzeLive();
+            }, delayMs);
+        }
+
+        function stopLiveDetection() {
+            if (liveTimer) {
+                clearTimeout(liveTimer);
+                liveTimer = null;
+            }
+            requestInFlight = false;
+        }
+
+        async function captureAndAnalyzeLive() {
+            if (!stream) {
+                return;
+            }
+
+            if (requestInFlight) {
+                scheduleNextLiveFrame(120);
+                return;
+            }
+
+            if (video.readyState < 2) {
+                scheduleNextLiveFrame(200);
+                return;
+            }
+
+            requestInFlight = true;
+            try {
+                const context = canvas.getContext('2d');
+                canvas.width = CAPTURE_WIDTH;
+                canvas.height = CAPTURE_HEIGHT;
+                context.drawImage(video, 0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT);
+                
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        requestInFlight = false;
+                        document.getElementById('liveStatus').textContent = 'Live detection error: unable to read webcam frame';
+                        scheduleNextLiveFrame(600);
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const imageData = e.target.result;
+                        
+                        try {
+                            const response = await fetch('/api/detect-all', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ image: imageData, include_image: false })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                drawDetectionsOnVideo(data.emotions);
+                                displayWebcamResults(data.emotions, data.emotion_count);
+                                trackEmotionDuration(data.emotions);
+                                
+                                // Display dangerous objects with alert
+                                displayDangerAlert('webcam', data.dangerous_objects);
+                            } else {
+                                document.getElementById('liveStatus').textContent = 'Live detection error: ' + (data.error || 'Unknown error');
+                            }
+                        } catch (error) {
+                            document.getElementById('liveStatus').textContent = 'Live detection error: ' + error.message;
+                        } finally {
+                            requestInFlight = false;
+                            scheduleNextLiveFrame();
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                }, 'image/jpeg', 0.6);
+            } catch (error) {
+                requestInFlight = false;
+                document.getElementById('liveStatus').textContent = 'Error capturing frame: ' + error.message;
+                scheduleNextLiveFrame(1200);
+            }
+        }
+
+        function trackEmotionDuration(detections) {
+            const now = Date.now();
+            const currentSecond = Math.floor(now / 1000);
+            const minSecond = currentSecond - 59;
+
+            trackedEmotions.forEach((emotion) => {
+                trackedTimestamps[emotion] = trackedTimestamps[emotion].filter((sec) => sec >= minSecond);
+            });
+
+            const detectedThisFrame = new Set(
+                detections
+                    .map((det) => det.label)
+                    .filter((label) => trackedEmotions.includes(label))
+            );
+
+            detectedThisFrame.forEach((emotion) => {
+                const currentList = trackedTimestamps[emotion];
+                const lastSecond = currentList.length > 0 ? currentList[currentList.length - 1] : null;
+                if (lastSecond !== currentSecond) {
+                    currentList.push(currentSecond);
+                }
+            });
+
+            trackedEmotions.forEach((emotion) => {
+                const detectedSecondsInMinute = trackedTimestamps[emotion].length;
+                const tenSecondWindowReached = detectedSecondsInMinute >= 10;
+                const printCooldownPassed = now - lastPrintedAt[emotion] >= 1000;
+                const isDetectedNow = detectedThisFrame.has(emotion);
+
+                if (tenSecondWindowReached && printCooldownPassed && isDetectedNow) {
+                    printEmotionLog(`emotion detected:${emotion.toLowerCase()}`);
+                    lastPrintedAt[emotion] = now;
+                }
+            });
+        }
+
+        function resetEmotionTracking() {
+            trackedEmotions.forEach((emotion) => {
+                trackedTimestamps[emotion] = [];
+                lastPrintedAt[emotion] = 0;
+            });
+        }
+
+        function displayWebcamResults(detections, count) {
+            const resultsDiv = document.getElementById('webcamResults');
+            const detectionsDiv = document.getElementById('webcamDetections');
+            document.getElementById('faceCountWebcam').textContent = `Faces detected: ${count}`;
+
+            if (detections.length === 0) {
+                detectionsDiv.innerHTML = '<p style="color: #999;">No faces detected in the live frame.</p>';
+            } else {
+                detectionsDiv.innerHTML = detections.map((det, i) => `
+                    <div class="result-item">
+                        <div class="emotion-label">Face ${i + 1}: ${det.label}</div>
+                        <div class="confidence">Confidence: ${(det.confidence * 100).toFixed(2)}%</div>
+                    </div>
+                `).join('');
+            }
+
+            resultsDiv.style.display = 'block';
+        }
+
+        function drawDetectionsOnVideo(detections) {
+            resizeOverlay();
+            clearOverlay();
+
+            if (!Array.isArray(detections) || detections.length === 0) {
+                return;
+            }
+
+            const scaleX = overlayCanvas.width / CAPTURE_WIDTH;
+            const scaleY = overlayCanvas.height / CAPTURE_HEIGHT;
+
+            overlayContext.lineWidth = 2;
+            overlayContext.strokeStyle = '#00ff00';
+            overlayContext.fillStyle = '#00ff00';
+            overlayContext.font = '16px Segoe UI';
+
+            detections.forEach((det) => {
+                if (!det.bbox) {
+                    return;
+                }
+
+                const x = det.bbox.x * scaleX;
+                const y = det.bbox.y * scaleY;
+                const w = det.bbox.w * scaleX;
+                const h = det.bbox.h * scaleY;
+
+                overlayContext.strokeRect(x, y, w, h);
+                const labelText = `${det.label} ${(det.confidence * 100).toFixed(0)}%`;
+                overlayContext.fillText(labelText, x, Math.max(18, y - 8));
+            });
+        }
+
+        window.addEventListener('resize', resizeOverlay);
+
+        function printEmotionLog(message) {
+            console.log(message);
+            document.getElementById('liveStatus').textContent = message;
+        }
+        
+        // Display dangerous object alerts
+        function displayDangerAlert(source, dangerousObjects) {
+            const alertElement = document.getElementById(`${source}DangerAlert`);
+            const dangerList = document.getElementById(`${source}DangerList`);
+            
+            if (!dangerousObjects || dangerousObjects.length === 0) {
+                alertElement.style.display = 'none';
+                return;
+            }
+            
+            // Show alert with animation
+            alertElement.classList.add('danger-blink');
+            alertElement.style.display = 'block';
+            
+            // Generate danger items HTML
+            let html = '';
+            dangerousObjects.forEach(danger => {
+                const obj = danger.object || 'Unknown Object';
+                const conf = (danger.confidence * 100).toFixed(1);
+                html += `<div class="danger-object-item">⚠️ ${obj.toUpperCase()} (${conf}% confidence)</div>`;
+            });
+            
+            dangerList.innerHTML = html;
+            
+            // Console log for terminal visibility
+            dangerousObjects.forEach(danger => {
+                console.warn(`🚨 DANGEROUS OBJECT: ${danger.object} (${danger.confidence})`);
+            });
+            
+            // Draw danger boxes on overlay
+            if (source === 'webcam' && dangerousObjects.length > 0) {
+                drawDangerBoxesOnOverlay(dangerousObjects);
+            } else if (source === 'upload' && dangerousObjects.length > 0) {
+                drawUploadVideoDangerBoxes(dangerousObjects);
+            }
+        }
+        
+        // Draw red boxes for dangerous objects on overlay canvas
+        function drawDangerBoxesOnOverlay(dangerousObjects) {
+            const overlayCanvas = document.getElementById('overlayCanvas');
+            if (!overlayCanvas || overlayCanvas.hidden) return;
+            
+            const overlayContext = overlayCanvas.getContext('2d');
+            if (!overlayContext) return;
+            
+            const scaleX = overlayCanvas.width / CAPTURE_WIDTH;
+            const scaleY = overlayCanvas.height / CAPTURE_HEIGHT;
+            
+            overlayContext.lineWidth = 3;
+            overlayContext.strokeStyle = '#FF0000';
+            overlayContext.fillStyle = '#FF0000';
+            overlayContext.font = 'bold 16px Segoe UI';
+            
+            dangerousObjects.forEach((danger) => {
+                if (!danger.bbox) return;
+                
+                const x = danger.bbox.x * scaleX;
+                const y = danger.bbox.y * scaleY;
+                const w = danger.bbox.w * scaleX;
+                const h = danger.bbox.h * scaleY;
+                
+                // Draw red rectangle
+                overlayContext.strokeRect(x, y, w, h);
+                
+                // Draw label with red background
+                const labelText = `⚠️ ${danger.object.toUpperCase()} ${(danger.confidence * 100).toFixed(0)}%`;
+                const metrics = overlayContext.measureText(labelText);
+                const labelWidth = metrics.width + 8;
+                const labelHeight = 24;
+                
+                overlayContext.fillRect(x, Math.max(0, y - labelHeight), labelWidth, labelHeight);
+                overlayContext.fillStyle = '#FFFFFF';
+                overlayContext.fillText(labelText, x + 4, Math.max(16, y - 4));
+            });
+        }
+    </script>
+</body>
+</html>
