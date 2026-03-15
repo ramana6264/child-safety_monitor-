@@ -25,4 +25,4 @@ ENV PORT=5000
 EXPOSE 5000
 
 # Keep one worker because ML models are memory-heavy.
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 4 --timeout 180 app:app"]
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 180 app:app
